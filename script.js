@@ -58,77 +58,49 @@
         }
 
         // Contact Form Handler with Security
-        document.getElementById('contact-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formStatus = document.getElementById('form-status');
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            
-            // Clear previous errors
-            clearError('name', 'name-error');
-            clearError('email', 'email-error');
-            clearError('subject', 'subject-error');
-            clearError('message', 'message-error');
-            
-            // Get and sanitize form data
-            let name = sanitizeInput(document.getElementById('name').value);
-            let email = sanitizeInput(document.getElementById('email').value);
-            let subject = sanitizeInput(document.getElementById('subject').value);
-            let message = sanitizeInput(document.getElementById('message').value);
-            
-            // Validation
-            let hasError = false;
-            
-            if (!validateName(name)) {
-                showError('name', 'name-error', 'Invalid name. Use only letters, spaces, hyphens, and apostrophes (2-100 characters)');
-                hasError = true;
-            }
-            
-            if (!validateEmail(email)) {
-                showError('email', 'email-error', 'Invalid email format. Please use a valid email address');
-                hasError = true;
-            }
-            
-            if (subject.length < 3 || subject.length > 200) {
-                showError('subject', 'subject-error', 'Subject must be between 3 and 200 characters');
-                hasError = true;
-            }
-            
-            if (message.length < 10 || message.length > 5000) {
-                showError('message', 'message-error', 'Message must be between 10 and 5000 characters');
-                hasError = true;
-            }
-            
-            if (hasError) {
-                return;
-            }
+      document.getElementById('contact-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
 
-            // Disable submit button
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'TRANSMITTING...';
-            submitBtn.style.opacity = '0.6';
-            
-            // Create secure mailto link
-            const mailtoLink = `mailto:karabomere47@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
-                `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}\n\n---\nThis message was sent securely from the portfolio contact form.`
-            )}`;
-            
-            // Open mailto link
-            window.location.href = mailtoLink;
-            
-            // Show success message
-            formStatus.className = 'block text-center p-6 rounded-xl mt-6 font-bold text-xl neon-border-animated bg-green-100 text-green-600';
-            formStatus.innerHTML = '> MESSAGE_QUEUED_FOR_TRANSMISSION<br/>> SECURITY_CHECK: PASSED';
-            
-            // Reset form
-            setTimeout(() => {
-                e.target.reset();
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'TRANSMIT_MESSAGE';
-                submitBtn.style.opacity = '1';
-                formStatus.className = 'hidden';
-            }, 4000);
-        });
+  const formStatus = document.getElementById('form-status');
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'TRANSMITTING...';
+  submitBtn.style.opacity = '0.6';
+
+  const formData = {
+    name: document.getElementById('name').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    subject: document.getElementById('subject').value.trim(),
+    message: document.getElementById('message').value.trim()
+  };
+
+  try {
+    const response = await fetch('http://localhost:5000/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      formStatus.className = 'block text-center p-6 rounded-xl mt-6 font-bold text-xl neon-border-animated bg-green-100 text-green-600';
+      formStatus.innerHTML = '> MESSAGE_QUEUED_FOR_TRANSMISSION<br/>> SECURITY_CHECK: PASSED';
+      e.target.reset();
+    } else {
+      throw new Error(result.message || 'Transmission failed');
+    }
+  } catch (err) {
+    formStatus.className = 'block text-center p-6 rounded-xl mt-6 font-bold text-xl neon-border-animated bg-red-100 text-red-600';
+    formStatus.innerHTML = '> TRANSMISSION_ERROR<br/>> ' + err.message;
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'TRANSMIT_MESSAGE';
+    submitBtn.style.opacity = '1';
+    setTimeout(() => (formStatus.className = 'hidden'), 5000);
+  }
+});
+
 
         // Real-time validation feedback
         document.getElementById('name').addEventListener('blur', function() {
